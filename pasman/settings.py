@@ -12,9 +12,9 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ====================== SECURITY & BASIC SETTINGS ======================
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production!')
+SECRET_KEY = config('SECRET_KEY')
 
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.onrender.com').split(',')
 
@@ -116,6 +116,11 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_AGE = 900
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # Logging
 LOGGING = {

@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from accounts.models import MasterPassword, UserSession
 from accounts.forms import MasterPasswordForm, MasterPasswordVerifyForm
+from vault.encryption import derive_encryption_key, protect_session_key
 
 
 def setup_master_password(request):
@@ -34,8 +35,8 @@ def setup_master_password(request):
             password = form.cleaned_data['password']
             master_pwd = MasterPassword(user=request.user)
             master_pwd.set_password(password)
-            # Store in session for immediate verification
-            request.session['master_password'] = password
+            encryption_key = derive_encryption_key(password, master_pwd.salt)
+            request.session['encryption_key'] = protect_session_key(encryption_key)
             request.session['master_password_verified'] = True
             messages.success(request, "Master password set successfully!")
             return redirect('vault:dashboard')
@@ -75,8 +76,8 @@ def verify_master_password(request):
                 session, created = UserSession.objects.get_or_create(user=request.user)
                 session.is_authenticated = True
                 session.save()
-                # Store master password in session for encryption/decryption
-                request.session['master_password'] = password
+                encryption_key = derive_encryption_key(password, master_pwd.salt)
+                request.session['encryption_key'] = protect_session_key(encryption_key)
                 request.session['master_password_verified'] = True
                 messages.success(request, "Master password verified!")
                 return redirect('vault:dashboard')
@@ -93,9 +94,8 @@ def logout_view(request):
     """
     Logout and clear session authentication.
     """
-    # Clear master password from session
-    if 'master_password' in request.session:
-        del request.session['master_password']
+    if 'encryption_key' in request.session:
+        del request.session['encryption_key']
     if 'master_password_verified' in request.session:
         del request.session['master_password_verified']
     

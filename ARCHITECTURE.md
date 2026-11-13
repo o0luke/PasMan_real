@@ -164,9 +164,7 @@ User submits form
 POST /vault/credential/create/
     ↓
 create_credential view:
-  ├─ Get master_password from session['master_password']
-  ├─ Get MasterPassword.salt from DB
-  ├─ Derive encryption key: PBKDF2(master_pw, salt)
+  ├─ Unwrap the protected encryption key from the server-side session
   ├─ Encrypt password: Fernet.encrypt(password, key)
   └─ Save Credential with encrypted_password
     ↓
@@ -186,9 +184,7 @@ GET /vault/credential/123/
     ↓
 credential_detail view:
   ├─ Get Credential from DB
-  ├─ Get master_password from session['master_password']
-  ├─ Get MasterPassword.salt from DB
-  ├─ Derive decryption key: PBKDF2(master_pw, salt)
+  ├─ Unwrap the protected encryption key from the server-side session
   ├─ Decrypt password: Fernet.decrypt(encrypted_password, key)
   ├─ Log access: AuditLog.create(action='view', ...)
   └─ Render template with decrypted_password

@@ -94,7 +94,7 @@ PasMan_real/
 ├── 🔹 Configuration Files
 │   ├── requirements.txt              # Python dependencies
 │   ├── .env.example                  # Environment variables template
-│   ├── .env.production               # Production environment template
+│   ├── .env.example                  # Environment variables template
 │   ├── .gitignore                    # Git ignore rules
 │   ├── runtime.txt                   # Python version for Render
 │   └── Procfile                      # Deployment process definition

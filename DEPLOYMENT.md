@@ -92,7 +92,7 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_SECURITY_POLICY = {
     'default-src': ("'self'",),
     'style-src': ("'self'", "'unsafe-inline'", "fonts.googleapis.com"),
-    'script-src': ("'self'", "cdn.tailwindcss.com"),
+    'script-src': ("'self'",),
     'font-src': ("'self'", "fonts.gstatic.com"),
 }
 

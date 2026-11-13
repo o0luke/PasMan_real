@@ -6,6 +6,8 @@ derived from the user's master password.
 import os
 from cryptography.fernet import Fernet, InvalidToken
 import base64
+import hashlib
+from django.conf import settings
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
@@ -38,6 +40,24 @@ def derive_encryption_key(password: str, salt = None) -> bytes:
     key = kdf.derive(password.encode('utf-8'))
     # Return base64-encoded key for Fernet
     return base64.urlsafe_b64encode(key)
+
+
+def _session_key_cipher():
+    wrapping_key = hashlib.sha256(settings.SECRET_KEY.encode('utf-8')).digest()
+    return Fernet(base64.urlsafe_b64encode(wrapping_key))
+
+
+def protect_session_key(encryption_key: bytes) -> str:
+    """Protect a derived vault key before storing it in the server-side session."""
+    return _session_key_cipher().encrypt(encryption_key).decode('ascii')
+
+
+def unprotect_session_key(protected_key: str) -> bytes | None:
+    """Recover a derived vault key from the session, or return None if invalid."""
+    try:
+        return _session_key_cipher().decrypt(protected_key.encode('ascii'))
+    except (InvalidToken, UnicodeError, ValueError, TypeError):
+        return None
 
 
 def encrypt_password(password, encryption_key):

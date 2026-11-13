@@ -11,7 +11,7 @@ from django.db.models import Q
 from accounts.models import MasterPassword, UserSession
 from vault.models import Credential, AuditLog
 from vault.forms import CredentialForm, PasswordGeneratorForm, SearchForm
-from vault.encryption import encrypt_password, decrypt_password, derive_encryption_key
+from vault.encryption import encrypt_password, decrypt_password, unprotect_session_key
 from vault.password_utils import PasswordGenerator, PasswordStrength
 
 
@@ -27,8 +27,7 @@ def require_master_password(view_func):
         if not request.session.get('master_password_verified', False):
             return redirect('accounts:verify_master_password')
 
-        # Verify that master password exists in session
-        if 'master_password' not in request.session:
+        if 'encryption_key' not in request.session:
             return redirect('accounts:verify_master_password')
 
         return view_func(request, *args, **kwargs)
@@ -84,14 +83,12 @@ def credential_detail(request, pk):
 
     # Decrypt password
     try:
-        master_pwd = MasterPassword.objects.get(user=request.user)
-        master_password = request.session.get('master_password')
-        
-        if not master_password:
+        MasterPassword.objects.get(user=request.user)
+        encryption_key = unprotect_session_key(request.session['encryption_key'])
+        if not encryption_key:
             messages.error(request, "Master password not found in session. Please verify again.")
             return redirect('accounts:verify_master_password')
 
-        encryption_key = derive_encryption_key(master_password, master_pwd.salt)
         decrypted_password = decrypt_password(credential.encrypted_password, encryption_key)
         
         password_strength = None
@@ -141,13 +138,11 @@ def create_credential(request):
             if password:
                 try:
                     master_pwd = MasterPassword.objects.get(user=request.user)
-                    master_password = request.session.get('master_password')
-                    
-                    if not master_password:
+                    encryption_key = unprotect_session_key(request.session['encryption_key'])
+                    if not encryption_key:
                         messages.error(request, "Master password not verified. Please verify again.")
                         return redirect('accounts:verify_master_password')
                     
-                    encryption_key = derive_encryption_key(master_password, master_pwd.salt)
                     credential.encrypted_password = encrypt_password(password, encryption_key)
                 except MasterPassword.DoesNotExist:
                     messages.error(request, "Master password not found.")
@@ -194,13 +189,11 @@ def edit_credential(request, pk):
             if password:
                 try:
                     master_pwd = MasterPassword.objects.get(user=request.user)
-                    master_password = request.session.get('master_password')
-                    
-                    if not master_password:
+                    encryption_key = unprotect_session_key(request.session['encryption_key'])
+                    if not encryption_key:
                         messages.error(request, "Master password not verified. Please verify again.")
                         return redirect('accounts:verify_master_password')
                     
-                    encryption_key = derive_encryption_key(master_password, master_pwd.salt)
                     credential.encrypted_password = encrypt_password(password, encryption_key)
                 except Exception as e:
                     messages.error(request, f"Could not encrypt password: {str(e)}")
